@@ -165,14 +165,6 @@ expense-tracker/
 4. **Dashboard Update**: New expense appears in recent expenses list
 5. **Reports Update**: Category breakdown and trends charts updated
 
-## Tips for Better Tracking 
-
-1. **Daily Entry**: Add expenses immediately after making them
-2. **Detailed Descriptions**: Use specific descriptions for better insights
-3. **Correct Categories**: Choose the most appropriate category
-4. **Regular Review**: Check weekly and monthly reports regularly
-5. **Set Goals**: Use insights to identify areas for spending reduction
-
 ## Future Enhancements 
 
 - Budget setting and tracking
