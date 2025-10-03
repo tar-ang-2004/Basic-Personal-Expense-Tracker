@@ -1,6 +1,6 @@
 # Personal Expense Tracker 
 
-A comprehensive personal expense tracking application built with Python and Flask. Track your daily expenses, categorize spending, and get detailed insights with beautiful charts and analytics.
+A basic personal expense tracking application built with Python and Flask. Track your daily expenses, categorize spending, and get detailed insights with beautiful charts and analytics.
 
 ## Features 
 
