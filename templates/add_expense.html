@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Add Expense - Personal Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-plus me-2"></i>Add New Expense
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_expense') }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">
+                                    <i class="fas fa-dollar-sign me-1"></i>Amount *
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="amount" 
+                                       name="amount" 
+                                       step="0.01" 
+                                       min="0.01" 
+                                       required
+                                       placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>Date
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="date" 
+                                       name="date">
+                                <div class="form-text">Leave empty for today</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="category" class="form-label">
+                            <i class="fas fa-tags me-1"></i>Category *
+                        </label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select a category</option>
+                            {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            <i class="fas fa-edit me-1"></i>Description
+                        </label>
+                        <textarea class="form-control" 
+                                  id="description" 
+                                  name="description" 
+                                  rows="3" 
+                                  placeholder="Optional description of the expense"></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Add Expense
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Add Buttons -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Add Common Expenses
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="quickAdd('Food & Dining', 'Lunch')">
+                            <i class="fas fa-utensils me-1"></i>Lunch
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="quickAdd('Transportation', 'Gas')">
+                            <i class="fas fa-gas-pump me-1"></i>Gas
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="quickAdd('Food & Dining', 'Groceries')">
+                            <i class="fas fa-shopping-cart me-1"></i>Groceries
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="quickAdd('Entertainment', 'Movie')">
+                            <i class="fas fa-film me-1"></i>Movie
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="quickAdd('Food & Dining', 'Coffee')">
+                            <i class="fas fa-coffee me-1"></i>Coffee
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="quickAdd('Transportation', 'Uber/Taxi')">
+                            <i class="fas fa-taxi me-1"></i>Uber/Taxi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Tips for Better Expense Tracking
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Add expenses immediately after making them to avoid forgetting
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Use descriptive but concise descriptions
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Choose the most appropriate category for better analysis
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Review your weekly and monthly summaries regularly
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('date');
+    if (!dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+});
+
+// Quick add function
+function quickAdd(category, description) {
+    document.getElementById('category').value = category;
+    document.getElementById('description').value = description;
+    document.getElementById('amount').focus();
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const amount = parseFloat(document.getElementById('amount').value);
+    if (amount <= 0) {
+        e.preventDefault();
+        alert('Please enter a valid amount greater than 0');
+        return false;
+    }
+    
+    const category = document.getElementById('category').value;
+    if (!category) {
+        e.preventDefault();
+        alert('Please select a category');
+        return false;
+    }
+});
+</script>
+{% endblock %}

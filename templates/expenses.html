@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}All Expenses - Personal Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-list me-2"></i>All Expenses
+                <small class="text-muted">({{ total }} total)</small>
+            </h1>
+            <a href="{{ url_for('add_expense') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Add New Expense
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if expenses %}
+<div class="card">
+    <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="searchFilter" placeholder="Search description...">
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="Food & Dining">Food & Dining</option>
+                    <option value="Rent & Housing">Rent & Housing</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Education">Education</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Savings & Investments">Savings & Investments</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" class="form-control" id="dateFilter" placeholder="Filter by date">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                    <i class="fas fa-times me-1"></i>Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="table-responsive">
+            <table class="table table-hover" id="expensesTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr data-category="{{ expense.category }}" data-date="{{ expense.date }}" data-description="{{ expense.description|lower }}">
+                        <td>
+                            <span class="text-muted">{{ expense.date }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ expense.description or 'No description' }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary category-badge">{{ expense.category }}</span>
+                        </td>
+                        <td>
+                            <span class="amount text-danger">${{ "%.2f"|format(expense.amount) }}</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense({{ expense.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <th colspan="3">Total on this page:</th>
+                        <th id="pageTotal">${{ "%.2f"|format(expenses|sum(attribute='amount')) }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <nav aria-label="Expense pagination">
+            <ul class="pagination justify-content-center">
+                {% if has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('view_expenses', page=page-1) }}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </span>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">Page {{ page }}</span>
+                </li>
+
+                {% if has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('view_expenses', page=page+1) }}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Page Total</h5>
+                <h3 class="text-danger" id="displayPageTotal">${{ "%.2f"|format(expenses|sum(attribute='amount')) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Showing</h5>
+                <h3 class="text-info">{{ expenses|length }} of {{ total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Average</h5>
+                <h3 class="text-success">${{ "%.2f"|format((expenses|sum(attribute='amount')) / (expenses|length) if expenses|length > 0 else 0) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+        <h3 class="text-muted">No expenses found</h3>
+        <p class="text-muted">Start tracking your expenses to see them here.</p>
+        <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus me-2"></i>Add Your First Expense
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchFilter = document.getElementById('searchFilter');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const table = document.getElementById('expensesTable');
+    
+    if (searchFilter && table) {
+        [searchFilter, categoryFilter, dateFilter].forEach(filter => {
+            if (filter) {
+                filter.addEventListener('input', filterTable);
+            }
+        });
+    }
+});
+
+function filterTable() {
+    const searchTerm = document.getElementById('searchFilter').value.toLowerCase();
+    const categoryTerm = document.getElementById('categoryFilter').value;
+    const dateTerm = document.getElementById('dateFilter').value;
+    const rows = document.querySelectorAll('#expensesTable tbody tr');
+    
+    let visibleTotal = 0;
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const description = row.dataset.description || '';
+        const category = row.dataset.category || '';
+        const date = row.dataset.date || '';
+        const amountText = row.querySelector('.amount').textContent.replace('$', '');
+        const amount = parseFloat(amountText);
+        
+        const matchesSearch = description.includes(searchTerm);
+        const matchesCategory = !categoryTerm || category === categoryTerm;
+        const matchesDate = !dateTerm || date === dateTerm;
+        
+        if (matchesSearch && matchesCategory && matchesDate) {
+            row.style.display = '';
+            visibleTotal += amount;
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update page total
+    document.getElementById('pageTotal').textContent = '$' + visibleTotal.toFixed(2);
+    document.getElementById('displayPageTotal').textContent = '$' + visibleTotal.toFixed(2);
+}
+
+function clearFilters() {
+    document.getElementById('searchFilter').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    filterTable();
+}
+
+// Export functionality
+function exportExpenses() {
+    const rows = Array.from(document.querySelectorAll('#expensesTable tbody tr')).filter(row => row.style.display !== 'none');
+    let csv = 'Date,Description,Category,Amount\n';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const date = cells[0].textContent.trim();
+        const description = cells[1].textContent.trim().replace(/"/g, '""');
+        const category = cells[2].textContent.trim();
+        const amount = cells[3].textContent.trim().replace('$', '');
+        
+        csv += `"${date}","${description}","${category}","${amount}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'expenses.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Personal Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            <small class="text-muted">Overview of your expenses</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-week fa-2x mb-2"></i>
+                <h4>${{ "%.2f"|format(weekly_summary.total_amount) }}</h4>
+                <p class="mb-0">This Week</p>
+                <small>{{ weekly_summary.total_transactions }} transactions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card success">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                <h4>${{ "%.2f"|format(monthly_summary.total_amount) }}</h4>
+                <p class="mb-0">This Month</p>
+                <small>{{ monthly_summary.total_transactions }} transactions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card info">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-day fa-2x mb-2"></i>
+                <h4>${{ "%.2f"|format(weekly_summary.average_per_day) }}</h4>
+                <p class="mb-0">Daily Average</p>
+                <small>This week</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card warning">
+            <div class="card-body text-center">
+                <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                <h4>${{ "%.2f"|format(weekly_summary.highest_expense.amount if weekly_summary.highest_expense else 0) }}</h4>
+                <p class="mb-0">Highest Expense</p>
+                <small>{{ weekly_summary.highest_expense.category if weekly_summary.highest_expense else 'N/A' }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Expenses -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Expenses
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_expenses %}
+                    {% for expense in recent_expenses %}
+                    <div class="expense-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ expense.description or 'No description' }}</h6>
+                                <small class="text-muted">{{ expense.date }}</small>
+                                <span class="badge bg-secondary category-badge ms-2">{{ expense.category }}</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="amount text-danger">${{ "%.2f"|format(expense.amount) }}</span>
+                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteExpense({{ expense.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('view_expenses') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>View All Expenses
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No expenses yet. Start tracking your spending!</p>
+                        <a href="{{ url_for('add_expense') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add First Expense
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown Chart -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Spending by Category
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if category_totals %}
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No data to display</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Weekly vs Monthly Comparison -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Weekly vs Monthly Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-calendar-week me-1"></i>Weekly Summary
+                        </h6>
+                        <p><strong>Period:</strong> {{ weekly_summary.start_date }} to {{ weekly_summary.end_date }}</p>
+                        <p><strong>Total:</strong> ${{ "%.2f"|format(weekly_summary.total_amount) }}</p>
+                        <p><strong>Transactions:</strong> {{ weekly_summary.total_transactions }}</p>
+                        
+                        <h6 class="mt-3">Top Categories:</h6>
+                        {% for category, amount in (weekly_summary.category_breakdown.items() | list)[:3] %}
+                        <div class="d-flex justify-content-between">
+                            <span>{{ category }}</span>
+                            <span class="text-danger">${{ "%.2f"|format(amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">
+                            <i class="fas fa-calendar-alt me-1"></i>Monthly Summary
+                        </h6>
+                        <p><strong>Period:</strong> {{ monthly_summary.start_date }} to {{ monthly_summary.end_date }}</p>
+                        <p><strong>Total:</strong> ${{ "%.2f"|format(monthly_summary.total_amount) }}</p>
+                        <p><strong>Transactions:</strong> {{ monthly_summary.total_transactions }}</p>
+                        
+                        <h6 class="mt-3">Top Categories:</h6>
+                        {% for category, amount in (monthly_summary.category_breakdown.items() | list)[:3] %}
+                        <div class="d-flex justify-content-between">
+                            <span>{{ category }}</span>
+                            <span class="text-danger">${{ "%.2f"|format(amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <a href="{{ url_for('add_expense') }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-plus me-2"></i>Add New Expense
+                </a>
+                <a href="{{ url_for('reports') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-chart-bar me-2"></i>View Detailed Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Category breakdown chart
+{% if category_totals %}
+const categoryData = {
+    labels: {{ category_totals.keys() | list | tojson }},
+    datasets: [{
+        data: {{ category_totals.values() | list | tojson }},
+        backgroundColor: [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384', '#36A2EB'
+        ],
+        borderWidth: 2,
+        borderColor: '#fff'
+    }]
+};
+
+const categoryConfig = {
+    type: 'doughnut',
+    data: categoryData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': $' + context.parsed.toFixed(2) + ' (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+};
+
+const categoryChart = new Chart(
+    document.getElementById('categoryChart'),
+    categoryConfig
+);
+{% endif %}
+</script>
+{% endblock %}

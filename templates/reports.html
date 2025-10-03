@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - Personal Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
+            <small class="text-muted">Detailed insights into your spending</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Time Period Tabs -->
+<ul class="nav nav-pills mb-4" id="reportTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="weekly-tab" data-bs-toggle="pill" data-bs-target="#weekly" type="button" role="tab">
+            <i class="fas fa-calendar-week me-1"></i>Weekly Report
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="monthly-tab" data-bs-toggle="pill" data-bs-target="#monthly" type="button" role="tab">
+            <i class="fas fa-calendar-alt me-1"></i>Monthly Report
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="analytics-tab" data-bs-toggle="pill" data-bs-target="#analytics" type="button" role="tab">
+            <i class="fas fa-chart-line me-1"></i>Analytics
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="reportTabsContent">
+    <!-- Weekly Report -->
+    <div class="tab-pane fade show active" id="weekly" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-week me-2"></i>Weekly Summary
+                        </h5>
+                        <small class="text-muted">{{ weekly_summary.start_date }} to {{ weekly_summary.end_date }}</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Overview</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Total Spent:</strong> ${{ "%.2f"|format(weekly_summary.total_amount) }}</li>
+                                    <li><strong>Transactions:</strong> {{ weekly_summary.total_transactions }}</li>
+                                    <li><strong>Daily Average:</strong> ${{ "%.2f"|format(weekly_summary.average_per_day) }}</li>
+                                    {% if weekly_summary.highest_expense %}
+                                    <li><strong>Highest Expense:</strong> ${{ "%.2f"|format(weekly_summary.highest_expense.amount) }}</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Top Categories</h6>
+                                {% for category, amount in (weekly_summary.category_breakdown.items() | list)[:5] %}
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>{{ category }}</span>
+                                    <span class="text-danger">${{ "%.2f"|format(amount) }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        {% if weekly_summary.daily_breakdown %}
+                        <h6 class="mt-3">Daily Breakdown</h6>
+                        <div class="chart-container">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Recent Expenses</h6>
+                    </div>
+                    <div class="card-body">
+                        {% for expense in weekly_summary.expenses[:5] %}
+                        <div class="expense-item small">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ expense.description or 'No description' }}</strong><br>
+                                    <small class="text-muted">{{ expense.date }} - {{ expense.category }}</small>
+                                </div>
+                                <span class="text-danger">${{ "%.2f"|format(expense.amount) }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Report -->
+    <div class="tab-pane fade" id="monthly" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>Monthly Summary
+                        </h5>
+                        <small class="text-muted">{{ monthly_summary.start_date }} to {{ monthly_summary.end_date }}</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Overview</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Total Spent:</strong> ${{ "%.2f"|format(monthly_summary.total_amount) }}</li>
+                                    <li><strong>Transactions:</strong> {{ monthly_summary.total_transactions }}</li>
+                                    <li><strong>Daily Average:</strong> ${{ "%.2f"|format(monthly_summary.average_per_day) }}</li>
+                                    {% if monthly_summary.highest_expense %}
+                                    <li><strong>Highest Expense:</strong> ${{ "%.2f"|format(monthly_summary.highest_expense.amount) }}</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Category Breakdown</h6>
+                                {% for category, amount in monthly_summary.category_breakdown.items() %}
+                                {% set percentage = (amount / monthly_summary.total_amount * 100) if monthly_summary.total_amount > 0 else 0 %}
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{{ category }}</span>
+                                        <span>${{ "%.2f"|format(amount) }} ({{ "%.1f"|format(percentage) }}%)</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar" style="width: {{ percentage }}%"></div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Monthly Categories</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if monthly_summary.category_breakdown %}
+                        <div class="chart-container">
+                            <canvas id="monthlyCategoryChart"></canvas>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="tab-pane fade" id="analytics" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line me-2"></i>Spending Trends
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Overall Category Distribution
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if category_totals %}
+                        <div class="chart-container">
+                            <canvas id="overallCategoryChart"></canvas>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data containers for JavaScript (hidden) -->
+        <div id="chartData" style="display: none;"
+             data-weekly='{{ weekly_summary.daily_breakdown | tojson if weekly_summary.daily_breakdown else "{}" }}'
+             data-monthly='{{ monthly_summary.category_breakdown | tojson if monthly_summary.category_breakdown else "{}" }}'
+             data-category='{{ category_totals | tojson if category_totals else "{}" }}'>
+        </div>
+
+        <!-- Insights -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>Spending Insights
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>📊 Key Statistics</h6>
+                                <ul class="list-unstyled">
+                                    {% if category_totals %}
+                                    {% set top_category = category_totals.items() | sort(attribute=1, reverse=true) | first %}
+                                    <li><i class="fas fa-trophy text-warning me-2"></i>Top spending category: <strong>{{ top_category[0] }}</strong> (${{ "%.2f"|format(top_category[1]) }})</li>
+                                    {% endif %}
+                                    
+                                    {% if weekly_summary.total_amount > 0 and monthly_summary.total_amount > 0 %}
+                                    {% set weekly_vs_monthly = (weekly_summary.total_amount / (monthly_summary.total_amount / 4.33)) * 100 %}
+                                    <li><i class="fas fa-chart-line me-2 {% if weekly_vs_monthly > 100 %}text-danger{% else %}text-success{% endif %}"></i>This week vs. weekly average: <strong>{{ "%.1f"|format(weekly_vs_monthly) }}%</strong></li>
+                                    {% endif %}
+                                    
+                                    <li><i class="fas fa-calendar-check text-info me-2"></i>Average transaction amount: <strong>${{ "%.2f"|format(monthly_summary.total_amount / monthly_summary.total_transactions if monthly_summary.total_transactions > 0 else 0) }}</strong></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>💡 Recommendations</h6>
+                                <ul class="list-unstyled">
+                                    {% if weekly_summary.total_amount > monthly_summary.average_per_day * 7 * 1.2 %}
+                                    <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>This week's spending is 20% above average</li>
+                                    {% endif %}
+                                    
+                                    {% if category_totals %}
+                                    {% for category, amount in category_totals.items() %}
+                                    {% if category == 'Food & Dining' and amount > monthly_summary.total_amount * 0.3 %}
+                                    <li><i class="fas fa-utensils text-info me-2"></i>Consider meal planning to reduce dining expenses</li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% endif %}
+                                    
+                                    <li><i class="fas fa-piggy-bank text-success me-2"></i>Track your expenses daily for better insights</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Chart configurations
+const chartColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'];
+
+// Get data from HTML data attributes
+const chartDataElement = document.getElementById('chartData');
+let weeklyData = {};
+let monthlyCategoryData = {};
+let categoryTotalsData = {};
+
+if (chartDataElement) {
+    try {
+        weeklyData = JSON.parse(chartDataElement.getAttribute('data-weekly') || '{}');
+        monthlyCategoryData = JSON.parse(chartDataElement.getAttribute('data-monthly') || '{}');
+        categoryTotalsData = JSON.parse(chartDataElement.getAttribute('data-category') || '{}');
+    } catch (e) {
+        console.error('Error parsing chart data:', e);
+    }
+}
+
+// Weekly daily breakdown chart
+if (Object.keys(weeklyData).length > 0) {
+    const weeklyChartData = {
+        labels: Object.keys(weeklyData),
+        datasets: [{
+            label: 'Daily Spending',
+            data: Object.values(weeklyData),
+            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+            borderColor: 'rgba(102, 126, 234, 1)',
+            borderWidth: 2,
+            fill: true
+        }]
+    };
+
+    const weeklyChartElement = document.getElementById('weeklyChart');
+    if (weeklyChartElement) {
+        new Chart(weeklyChartElement, {
+            type: 'line',
+            data: weeklyChartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Monthly category chart
+if (Object.keys(monthlyCategoryData).length > 0) {
+    const monthlyChartData = {
+        labels: Object.keys(monthlyCategoryData),
+        datasets: [{
+            data: Object.values(monthlyCategoryData),
+            backgroundColor: chartColors,
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    };
+
+    const monthlyChartElement = document.getElementById('monthlyCategoryChart');
+    if (monthlyChartElement) {
+        new Chart(monthlyChartElement, {
+            type: 'doughnut',
+            data: monthlyChartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+}
+
+// Overall category distribution
+if (Object.keys(categoryTotalsData).length > 0) {
+    const overallChartData = {
+        labels: Object.keys(categoryTotalsData),
+        datasets: [{
+            data: Object.values(categoryTotalsData),
+            backgroundColor: chartColors,
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    };
+
+    const overallChartElement = document.getElementById('overallCategoryChart');
+    if (overallChartElement) {
+        new Chart(overallChartElement, {
+            type: 'pie',
+            data: overallChartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 10, usePointStyle: true }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Monthly trend chart
+fetch('/api/monthly_trend')
+    .then(response => response.json())
+    .then(data => {
+        const trendData = {
+            labels: data.map(item => item.month),
+            datasets: [{
+                label: 'Monthly Spending',
+                data: data.map(item => item.total),
+                backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        };
+
+        const trendChartElement = document.getElementById('trendChart');
+        if (trendChartElement) {
+            new Chart(trendChartElement, {
+                type: 'line',
+                data: trendData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    })
+    .catch(error => console.error('Error loading trend data:', error));
+</script>
+{% endblock %}
